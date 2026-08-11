@@ -1,0 +1,1 @@
+import requests\nfor path in [" /v1/chat/completions\, \/v1/completions\, \/v1/models\, \/health\]:\n try:\n r=requests.get(\http://127.0.0.1:11434\+path, timeout=5)\n print(path, r.status_code)\n print(r.text[:400])\n except Exception as e:\n print(path, \ERROR\, repr(e))\n
