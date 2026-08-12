@@ -1,7 +1,8 @@
 import json
 import os
 import subprocess
-from flask import Flask, jsonify, request, send_from_directory
+import time
+from flask import Flask, jsonify, request, send_from_directory, Response, stream_with_context
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 
@@ -101,6 +102,41 @@ def serve(path):
     if path and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     return send_from_directory(app.static_folder, 'index.html')
+
+
+def stream_answer(prompt):
+    try:
+        full_answer = run_ollama(prompt)
+    except Exception as exc:
+        yield f"Error: {str(exc)}\n"
+        return
+
+    words = full_answer.split()
+    chunk = ''
+    for w in words:
+        chunk += w + ' '
+        if len(chunk) > 50:
+            yield chunk
+            chunk = ''
+            time.sleep(0.02)
+
+    if chunk:
+        yield chunk
+
+
+@app.route('/api/stream', methods=['POST'])
+def stream():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or 'messages' not in payload:
+        return jsonify({'error': "Expected JSON body with a 'messages' list."}), 400
+
+    messages = payload['messages']
+    if not isinstance(messages, list) or len(messages) == 0:
+        return jsonify({'error': 'messages must be a non-empty list'}), 400
+
+    prompt = build_prompt(messages)
+
+    return Response(stream_with_context(stream_answer(prompt)), content_type='text/plain; charset=utf-8')
 
 
 if __name__ == '__main__':

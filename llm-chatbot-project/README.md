@@ -46,6 +46,36 @@ A clean Python-only chatbot that uses the local Ollama CLI to generate assistant
 - The Python backend builds a text prompt from the chat history.
 - The backend calls `ollama run` directly and returns the assistant text.
 
+## Learning
+
+- Implemented a lightweight Flask frontend/backend chat loop that calls the local Ollama CLI.
+- Added a simple streaming endpoint to emulate incremental assistant output and a streaming-capable frontend.
+- Wrote tests that mock the model call so CI can run without Ollama installed.
+
+## Architecture
+
+- `app.py`: Flask app exposing two endpoints: `/api/chat` (batch) and `/api/stream` (streaming).
+- `public/`: Static frontend files; `public/app.js` connects to `/api/stream` and renders partial assistant output as it arrives.
+- `tests/`: `test_app.py` contains basic pytest tests which patch `run_ollama`.
+
+## Tests
+
+Run tests from `llm-chatbot-project`:
+
+```powershell
+python -m pip install -r requirements.txt
+pytest -q
+```
+
+## Screenshots
+
+View the placeholder screenshot at `public/screenshot.svg`.
+
+## Notes on Streaming
+
+- The streaming endpoint currently simulates chunked output by splitting the assistant text and yielding pieces; replace `run_ollama` with a true streaming client if your model/CLI supports it.
+
+
 ## Configuration
 
 - `OLLAMA_MODEL`: default is `llama2`
