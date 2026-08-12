@@ -73,7 +73,12 @@ View the placeholder screenshot at `public/screenshot.svg`.
 
 ## Notes on Streaming
 
-- The streaming endpoint currently simulates chunked output by splitting the assistant text and yielding pieces; replace `run_ollama` with a true streaming client if your model/CLI supports it.
+The `/api/stream` endpoint provides real-time response streaming for better UX:
+
+- **How it works**: The backend calls `run_ollama` to get the full response, then yields it in chunks (>50 chars) with a 20ms delay between chunks.
+- **Frontend**: `public/app.js` reads the stream and appends partial text to the chat in real-time, creating a "typing" effect.
+- **Why stream?** Instead of waiting for the full response, users see partial output immediately, making the app feel responsive.
+- **Future improvement**: Replace the simulated chunking with a true streaming model client (e.g., Ollama's streaming API) for token-by-token output.
 
 
 ## PDF QA (RAG)
@@ -93,6 +98,35 @@ Example ask:
 
 ```powershell
 curl -X POST -H "Content-Type: application/json" -d '{"doc_id":"<id>","question":"What is the main idea?"}' http://localhost:3000/api/ask-pdf
+```
+
+### Testing PDF Upload
+
+1. **Prepare a test PDF**: Use any PDF file (e.g., research paper, documentation, article).
+2. **Start the app**: Run `python app.py` and open `http://localhost:3000`.
+3. **Upload via web interface**: Use the file upload button to select and upload your PDF.
+4. **Take a screenshot**: Capture the upload confirmation showing the document ID and extracted chunks.
+5. **Ask questions**: Type questions about the PDF content and verify the relevant chunks are retrieved and answered.
+6. **Screenshot results**: Capture the Q&A results showing the answer and source chunks.
+
+### PDF Upload & Q&A Example
+
+When you upload a PDF and ask a question, the interface shows:
+
+```
+📄 Document ID: a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6
+📋 Chunks extracted: 12
+
+💬 User: What is the main topic of this document?
+
+🤖 Assistant: The document discusses machine learning fundamentals, 
+including supervised learning, neural networks, and practical applications 
+in natural language processing...
+
+📌 Source chunks:
+   - Chunk #2: "Machine learning is a subset of artificial intelligence..."
+   - Chunk #5: "Neural networks consist of interconnected layers of nodes..."
+   - Chunk #8: "Applications in NLP include text classification, sentiment analysis..."
 ```
 
 Notes:

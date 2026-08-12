@@ -6,6 +6,14 @@ const messages = [
   { role: 'system', content: 'You are a helpful assistant.' }
 ];
 
+let lastUploadedDocId = null;
+
+const fileInput = document.getElementById('fileInput');
+const uploadButton = document.getElementById('uploadButton');
+const uploadStatus = document.getElementById('uploadStatus');
+const pdfQuestionInput = document.getElementById('pdfQuestionInput');
+const pdfAskButton = document.getElementById('pdfAskButton');
+
 function appendMessage(role, text, id) {
   let wrapper;
   if (id) {
@@ -77,6 +85,67 @@ async function sendMessage() {
   }
 }
 
+async function uploadPdf() {
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
+  const file = fileInput.files[0];
+  if (!uploadButton || !uploadStatus) return;
+  uploadButton.disabled = true;
+  uploadStatus.textContent = 'Uploading...';
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const resp = await fetch('/api/upload-pdf', { method: 'POST', body: fd });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      uploadStatus.textContent = `Upload error: ${data.error || resp.statusText}`;
+      return;
+    }
+    lastUploadedDocId = data.doc_id;
+    uploadStatus.textContent = `Uploaded: ${file.name} (chunks: ${data.chunks})`;
+    appendMessage('assistant', `Uploaded PDF. doc_id=${lastUploadedDocId}`);
+  } catch (err) {
+    uploadStatus.textContent = `Upload failed: ${err.message}`;
+  } finally {
+    uploadButton.disabled = false;
+  }
+}
+
+async function askPdf() {
+  if (!pdfQuestionInput) return;
+  const q = pdfQuestionInput.value.trim();
+  if (!q) return;
+  if (!lastUploadedDocId) {
+    appendMessage('assistant', 'No PDF uploaded yet.');
+    return;
+  }
+  appendMessage('user', q);
+  if (pdfAskButton) pdfAskButton.disabled = true;
+
+  try {
+    const resp = await fetch('/api/ask-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doc_id: lastUploadedDocId, question: q }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      appendMessage('assistant', `Error: ${data.error || resp.statusText}`);
+      return;
+    }
+    const answer = data.assistant || 'No answer';
+    appendMessage('assistant', answer);
+    if (Array.isArray(data.sources)) {
+      data.sources.forEach((s) => appendMessage('assistant', `Source (score=${s.score.toFixed(2)}): ${s.chunk}`));
+    }
+    pdfQuestionInput.value = '';
+  } catch (err) {
+    appendMessage('assistant', `Request failed: ${err.message}`);
+  } finally {
+    if (pdfAskButton) pdfAskButton.disabled = false;
+  }
+}
+
 sendButton.addEventListener('click', sendMessage);
 messageInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
@@ -84,5 +153,16 @@ messageInput.addEventListener('keydown', (event) => {
     sendMessage();
   }
 });
+
+if (uploadButton) uploadButton.addEventListener('click', uploadPdf);
+if (pdfAskButton) pdfAskButton.addEventListener('click', askPdf);
+if (pdfQuestionInput) {
+  pdfQuestionInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      askPdf();
+    }
+  });
+}
 
 messageInput.focus();

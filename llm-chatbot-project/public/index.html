@@ -23,6 +23,15 @@
 <body>
   <div class="app">
     <h1>Python Ollama Chatbot</h1>
+    <div style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
+      <input id="fileInput" type="file" accept="application/pdf" />
+      <button id="uploadButton">Upload PDF</button>
+      <div id="uploadStatus" style="font-size:0.9rem;color:#374151;margin-left:8px"></div>
+    </div>
+    <div style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
+      <input id="pdfQuestionInput" type="text" placeholder="Ask about uploaded PDF..." style="flex:1;padding:8px;border-radius:8px;border:1px solid #d1d5db;"/>
+      <button id="pdfAskButton">Ask PDF</button>
+    </div>
     <div class="chat-window" id="chatWindow"></div>
     <div class="input-row">
       <input id="messageInput" type="text" placeholder="Ask something..." autocomplete="off" />

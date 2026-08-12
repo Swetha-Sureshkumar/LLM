@@ -148,15 +148,26 @@ def upload_pdf():
         return jsonify({'error': "Expected a file field named 'file'"}), 400
 
     f = request.files['file']
+    if not f or f.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
     filename = secure_filename(f.filename or 'uploaded.pdf')
     data = f.read()
+    
+    if not data:
+        return jsonify({'error': 'File is empty'}), 400
+    
     doc_id = request.form.get('doc_id') or str(uuid.uuid4())
     try:
         doc_id = rag_store.add_pdf(data, doc_id=doc_id, filename=filename)
         doc = rag_store._docs.get(doc_id, {})
         return jsonify({'doc_id': doc_id, 'chunks': len(doc.get('chunks', []))})
     except Exception as exc:
-        return jsonify({'error': str(exc)}), 500
+        import traceback
+        error_msg = f"{type(exc).__name__}: {str(exc)}"
+        print(f"Upload error: {error_msg}")
+        traceback.print_exc()
+        return jsonify({'error': error_msg}), 500
 
 
 @app.route('/api/ask-pdf', methods=['POST'])
