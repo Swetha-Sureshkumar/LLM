@@ -76,6 +76,32 @@ View the placeholder screenshot at `public/screenshot.svg`.
 - The streaming endpoint currently simulates chunked output by splitting the assistant text and yielding pieces; replace `run_ollama` with a true streaming client if your model/CLI supports it.
 
 
+## PDF QA (RAG)
+
+Upload a PDF and ask questions about its content (retrieval-augmented generation using TF‑IDF retrieval).
+
+- Upload endpoint: `POST /api/upload-pdf` (multipart form, field name `file`). Returns `{doc_id, chunks}`.
+- Ask endpoint: `POST /api/ask-pdf` with JSON `{ "doc_id": "...", "question": "...", "top_k": 3 }`. Returns `{ assistant, sources }`.
+
+Example upload (PowerShell):
+
+```powershell
+curl -X POST -F "file=@C:\path\to\doc.pdf" http://localhost:3000/api/upload-pdf
+```
+
+Example ask:
+
+```powershell
+curl -X POST -H "Content-Type: application/json" -d '{"doc_id":"<id>","question":"What is the main idea?"}' http://localhost:3000/api/ask-pdf
+```
+
+Notes:
+
+- The project uses an in-memory RAG store (`rag_store.py`) backed by TF‑IDF vectors for retrieval. For production, swap in a persistent vector DB and real embeddings.
+- Uploads are not persisted across process restarts.
+
+
+
 ## Configuration
 
 - `OLLAMA_MODEL`: default is `llama2`

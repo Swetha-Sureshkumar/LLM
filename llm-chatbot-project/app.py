@@ -3,6 +3,9 @@ import os
 import subprocess
 import time
 from flask import Flask, jsonify, request, send_from_directory, Response, stream_with_context
+from werkzeug.utils import secure_filename
+from rag_store import rag_store
+import uuid
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 
@@ -137,6 +140,48 @@ def stream():
     prompt = build_prompt(messages)
 
     return Response(stream_with_context(stream_answer(prompt)), content_type='text/plain; charset=utf-8')
+
+
+@app.route('/api/upload-pdf', methods=['POST'])
+def upload_pdf():
+    if 'file' not in request.files:
+        return jsonify({'error': "Expected a file field named 'file'"}), 400
+
+    f = request.files['file']
+    filename = secure_filename(f.filename or 'uploaded.pdf')
+    data = f.read()
+    doc_id = request.form.get('doc_id') or str(uuid.uuid4())
+    try:
+        doc_id = rag_store.add_pdf(data, doc_id=doc_id, filename=filename)
+        doc = rag_store._docs.get(doc_id, {})
+        return jsonify({'doc_id': doc_id, 'chunks': len(doc.get('chunks', []))})
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
+
+
+@app.route('/api/ask-pdf', methods=['POST'])
+def ask_pdf():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or 'doc_id' not in payload or 'question' not in payload:
+        return jsonify({'error': "Expected JSON with 'doc_id' and 'question'"}), 400
+
+    doc_id = payload['doc_id']
+    question = payload['question']
+    top_k = int(payload.get('top_k', 3))
+
+    if doc_id not in rag_store._docs:
+        return jsonify({'error': 'doc_id not found'}), 404
+
+    contexts = rag_store.query(doc_id, question, top_k=top_k)
+    context_text = '\n\n'.join([c['chunk'] for c in contexts])
+    prompt_lines = [SYSTEM_PROMPT.strip(), '', 'Context:', context_text, '', f'Question: {question}', 'Assistant:']
+    prompt = '\n'.join(prompt_lines)
+
+    try:
+        answer = run_ollama(prompt)
+        return jsonify({'assistant': answer, 'sources': contexts})
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
 
 
 if __name__ == '__main__':
