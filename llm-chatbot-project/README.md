@@ -67,10 +67,6 @@ python -m pip install -r requirements.txt
 pytest -q
 ```
 
-## Screenshots
-
-View the placeholder screenshot at `public/screenshot.svg`.
-
 ## Notes on Streaming
 
 The `/api/stream` endpoint provides real-time response streaming for better UX:
@@ -98,35 +94,6 @@ Example ask:
 
 ```powershell
 curl -X POST -H "Content-Type: application/json" -d '{"doc_id":"<id>","question":"What is the main idea?"}' http://localhost:3000/api/ask-pdf
-```
-
-### Testing PDF Upload
-
-1. **Prepare a test PDF**: Use any PDF file (e.g., research paper, documentation, article).
-2. **Start the app**: Run `python app.py` and open `http://localhost:3000`.
-3. **Upload via web interface**: Use the file upload button to select and upload your PDF.
-4. **Take a screenshot**: Capture the upload confirmation showing the document ID and extracted chunks.
-5. **Ask questions**: Type questions about the PDF content and verify the relevant chunks are retrieved and answered.
-6. **Screenshot results**: Capture the Q&A results showing the answer and source chunks.
-
-### PDF Upload & Q&A Example
-
-When you upload a PDF and ask a question, the interface shows:
-
-```
-📄 Document ID: a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6
-📋 Chunks extracted: 12
-
-💬 User: What is the main topic of this document?
-
-🤖 Assistant: The document discusses machine learning fundamentals, 
-including supervised learning, neural networks, and practical applications 
-in natural language processing...
-
-📌 Source chunks:
-   - Chunk #2: "Machine learning is a subset of artificial intelligence..."
-   - Chunk #5: "Neural networks consist of interconnected layers of nodes..."
-   - Chunk #8: "Applications in NLP include text classification, sentiment analysis..."
 ```
 
 Notes:
